@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Теміржол Тесті</title>
+
+  <style>
+    :root{
+      --bg: #ffffff;
+      --text: #111111;
+      --card: #f3f3f3;
+      --btn: #1f6feb;
+      --btnText: #ffffff;
+      --muted: #666;
+      --border: #ddd;
+    }
+
+    body.dark{
+      --bg: #0f1115;
+      --text: #f1f1f1;
+      --card: #171a21;
+      --btn: #3b82f6;
+      --btnText: #ffffff;
+      --muted: #b7b7b7;
+      --border: #2a2f3a;
+    }
+
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s;
+    }
+
+    .app{
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom: 20px;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+    }
+
+    select {
+      padding:8px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .hidden{display:none;}
+
+    .progress{ margin-bottom: 20px; }
+    #progressText{ color: var(--muted); font-weight: bold; }
+    .bar{
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+    #barFill{
+      height: 100%;
+      width: 0%;
+      background: var(--btn);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+
+    .answers{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .answer{
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 15px;
+      border-radius: 12px;
+      cursor:pointer;
+      text-align:left;
+      font-size: 16px;
+      transition: 0.2s;
+    }
+
+    .answer:hover:not(.selected){
+      background: rgba(31,111,235,0.1);
+      border-color: var(--btn);
+    }
+
+    .answer.selected{
+      background: var(--btn);
+      color: white;
+      border-color: var(--btn);
+    }
+
+    .bottom{
+      display:flex;
+      justify-content:space-between;
+      margin-top: 20px;
+    }
+
+    .btn{
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      cursor:pointer;
+      background: var(--btn);
+      color: var(--btnText);
+      font-weight: bold;
+      transition: opacity 0.2s;
+    }
+
+    .btn:active { transform: translateY(2px); }
+
+    .btn.secondary{
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn:disabled{
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .resultBox { text-align: center; }
+    #restartBtn { margin-top: 20px; width: 100%; }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h2 id="title">Тест</h2>
+      <div class="controls">
+        <select id="langSelect">
+          <option value="kk">Қазақша</option>
+          <option value="ru">Русский</option>
+          <option value="en">English</option>
+        </select>
+        <button id="themeBtn" class="btn">🌙</button>
+      </div>
+    </header>
+
+    <main id="quizCard" class="card">
+      <div class="progress">
+        <span id="progressText">1 / 15</span>
+        <div class="bar"><div id="barFill"></div></div>
+      </div>
+
+      <h3 id="questionText">Сұрақ...</h3>
+      <div id="answers" class="answers"></div>
+
+      <div class="bottom">
+        <button id="prevBtn" class="btn secondary">← Артқа</button>
+        <button id="nextBtn" class="btn">Келесі →</button>
+      </div>
+    </main>
+
+    <main id="resultCard" class="card hidden">
+      <div class="resultBox">
+        <h2 id="resultTitle">Нәтиже</h2>
+        <h1 id="resultText" style="font-size: 48px; margin: 20px 0;">0 / 15</h1>
+        <p id="resultHint"></p>
+        <button id="restartBtn" class="btn">Қайта бастау</button>
+      </div>
+    </main>
+  </div>
+
+<script>
+  const data = [
+    {
+      correct: "B",
+      kk: { q: "Диспетчерлік орталықтандыру жүйесінің негізгі мақсаты:", a: {A:"Пойыз жылдамдығын арттыру",B:"Бірнеше станцияны бір орталықтан басқару",C:"Вагондарды есепке алу",D:"Жарық сигналдарын күшейту"} },
+      ru: { q: "Основная цель диспетчерской централизации:", a: {A:"Увеличить скорость поезда",B:"Управлять несколькими станциями из одного центра",C:"Учитывать вагоны",D:"Усилить световые сигналы"} },
+      en: { q: "Main purpose of dispatcher centralization:", a: {A:"Increase train speed",B:"Control several stations from one center",C:"Count wagons",D:"Strengthen light signals"} }
+    },
+    {
+      correct: "C",
+      kk: { q: "Диспетчерлік орталықтандыру қай деңгейде жүзеге асырылады?", a: {A:"Локомотив кабинасында",B:"Станция кезекшісінде",C:"Диспетчерлік пунктте",D:"Жол бойында"} },
+      ru: { q: "На каком уровне осуществляется диспетчерская централизация?", a: {A:"В кабине локомотива",B:"У дежурного по станции",C:"На диспетчерском пункте",D:"Вдоль пути"} },
+      en: { q: "At what level is dispatcher centralization implemented?", a: {A:"In locomotive cab",B:"At station duty officer",C:"At dispatcher point",D:"Along the track"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Диспетчерлік орталықтандыру жүйесінде қандай байланыс қолданылады?", a: {A:"Механикалық",B:"Электрлік және телемеханикалық",C:"Гидравликалық",D:"Пневматикалық"} },
+      ru: { q: "Какая связь используется в системе диспетчерской централизации?", a: {A:"Механическая",B:"Электрическая и телемеханическая",C:"Гидравлическая",D:"Пневматическая"} },
+      en: { q: "What type of communication is used in dispatcher centralization?", a: {A:"Mechanical",B:"Electrical and telemechanical",C:"Hydraulic",D:"Pneumatic"} }
+    },
+    {
+      correct: "C",
+      kk: { q: "Диспетчерлік орталықтандыру жүйесінің артықшылығы:", a: {A:"Қызметкерлер санын көбейтеді",B:"Басқаруды күрделендіреді",C:"Пойыз қозғалысын тиімді ұйымдастырады",D:"Қауіпсіздікті төмендетеді"} },
+      ru: { q: "Преимущество диспетчерской централизации:", a: {A:"Увеличивает персонал",B:"Усложняет управление",C:"Эффективно организует движение поездов",D:"Снижает безопасность"} },
+      en: { q: "Advantage of dispatcher centralization:", a: {A:"Increases staff",B:"Complicates control",C:"Efficiently organizes train movement",D:"Reduces safety"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Автоблокировка дегеніміз:", a: {A:"Қолмен басқарылатын жүйе",B:"Пойыздар аралығын автоматты реттеу жүйесі",C:"Байланыс жүйесі",D:"Жарықтандыру құрылғысы"} },
+      ru: { q: "Автоблокировка — это:", a: {A:"Система ручного управления",B:"Автоматическая система регулирования интервала поездов",C:"Система связи",D:"Осветительное устройство"} },
+      en: { q: "Automatic block system is:", a: {A:"Manual control system",B:"Automatic regulation of train intervals",C:"Communication system",D:"Lighting device"} }
+    },
+    {
+      correct: "C",
+      kk: { q: "Автоблокировкада жол телімінің бос еместігі қалай анықталады?", a: {A:"Диспетчер бұйрығымен",B:"Машинист хабарламасымен",C:"Рельс тізбектері арқылы",D:"Дыбыс сигналымен"} },
+      ru: { q: "Как определяется занятость участка при автоблокировке?", a: {A:"По приказу диспетчера",B:"По сообщению машиниста",C:"Через рельсовые цепи",D:"По звуковому сигналу"} },
+      en: { q: "How is track occupancy detected in automatic block?", a: {A:"Dispatcher order",B:"Driver message",C:"Rail circuits",D:"Sound signal"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Автоблокировка жүйесінің негізгі элементі:", a: {A:"Бағдаршам",B:"Рельс тізбегі",C:"Байланыс кабелі",D:"Шпал"} },
+      ru: { q: "Основной элемент автоблокировки:", a: {A:"Светофор",B:"Рельсовая цепь",C:"Кабель связи",D:"Шпала"} },
+      en: { q: "Main element of automatic block:", a: {A:"Signal light",B:"Rail circuit",C:"Communication cable",D:"Sleeper"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Автоблокировканың басты артықшылығы:", a: {A:"Қол еңбегін көбейтеді",B:"Қауіпсіздікті арттырады",C:"Қымбат жүйе",D:"Орнату қиындығы"} },
+      ru: { q: "Главное преимущество автоблокировки:", a: {A:"Увеличивает ручной труд",B:"Повышает безопасность",C:"Дорогая система",D:"Сложная установка"} },
+      en: { q: "Main advantage of automatic block:", a: {A:"More manual work",B:"Improves safety",C:"Expensive system",D:"Hard to install"} }
+    },
+    {
+      correct: "C",
+      kk: { q: "Жартылай автоблокировка ерекшелігі:", a: {A:"Толық автоматты",B:"Тек қолмен басқарылады",C:"Автоматты және қолмен басқару бірге қолданылады",D:"Сигнал қолданылмайды"} },
+      ru: { q: "Особенность полуавтоблокировки:", a: {A:"Полностью автоматическая",B:"Только ручное управление",C:"Совмещает автоматическое и ручное управление",D:"Сигналы не используются"} },
+      en: { q: "Semi-automatic block feature:", a: {A:"Fully automatic",B:"Only manual",C:"Both automatic and manual control",D:"No signals"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Жартылай автоблокировка көбінесе қай жерде қолданылады?", a: {A:"Қалалық метро",B:"Аз қозғалысты телімдерде",C:"Әуежайларда",D:"Автожолда"} },
+      ru: { q: "Где чаще применяется полуавтоблокировка?", a: {A:"В метро",B:"На малодеятельных участках",C:"В аэропортах",D:"На автодороге"} },
+      en: { q: "Where is semi-automatic block mostly used?", a: {A:"Metro",B:"Low-traffic sections",C:"Airports",D:"Highways"} }
+    },
+    {
+      correct: "C",
+      kk: { q: "Жартылай автоблокировкада сигналды кім басқарады?", a: {A:"Тек машинист",B:"Диспетчер",C:"Станция кезекшісі",D:"Жүйе автоматты түрде"} },
+      ru: { q: "Кто управляет сигналом при полуавтоблокировке?", a: {A:"Только машинист",B:"Диспетчер",C:"Дежурный по станции",D:"Автоматически"} },
+      en: { q: "Who controls signals in semi-automatic block?", a: {A:"Only driver",B:"Dispatcher",C:"Station duty officer",D:"Automatic system"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Электрлік орталықтандырудың негізгі мақсаты:", a: {A:"Жол жөндеу",B:"Бағыттамалар мен сигналдарды орталықтан басқару",C:"Пойыз салмағын анықтау",D:"Байланысты күшейту"} },
+      ru: { q: "Основная цель электрической централизации:", a: {A:"Ремонт пути",B:"Централизованное управление стрелками и сигналами",C:"Определение массы поезда",D:"Усиление связи"} },
+      en: { q: "Main purpose of electrical interlocking:", a: {A:"Track repair",B:"Central control of switches and signals",C:"Determine train weight",D:"Improve communication"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Электрлік орталықтандыру қай жерде қолданылады?", a: {A:"Ашық жолда",B:"Станцияларда",C:"Локомотивте",D:"Вагонда"} },
+      ru: { q: "Где применяется электрическая централизация?", a: {A:"На перегоне",B:"На станциях",C:"В локомотиве",D:"В вагоне"} },
+      en: { q: "Where is electrical interlocking used?", a: {A:"Open line",B:"Stations",C:"Locomotive",D:"Wagon"} }
+    },
+    {
+      correct: "B",
+      kk: { q: "Электрлік орталықтандыруда қауіпсіздік қалай қамтамасыз етіледі?", a: {A:"Қолмен бақылау арқылы",B:"Құлыптау және өзара тәуелділік арқылы",C:"Машинист тәжірибесімен",D:"Дыбыс белгілемімен"} },
+      ru: { q: "Как обеспечивается безопасность в электрической централизации?", a: {A:"Ручным контролем",B:"Блокировкой и взаимозависимостью",C:"Опыт машиниста",D:"Звуковыми сигналами"} },
+      en: { q: "How is safety ensured in electrical interlocking?", a: {A:"Manual control",B:"Locking and interdependence",C:"Driver experience",D:"Sound signals"} }
+    },
+    {
+      correct: "C",
+      kk: { q: "Электрлік орталықтандырудың артықшылығы:", a: {A:"Қарапайымдылығы",B:"Қызметкерлер санын арттыру",C:"Қозғалыс қауіпсіздігін жоғарылату",D:"Қолмен басқару"} },
+      ru: { q: "Преимущество электрической централизации:", a: {A:"Простота",B:"Увеличение персонала",C:"Повышение безопасности движения",D:"Ручное управление"} },
+      en: { q: "Advantage of electrical interlocking:", a: {A:"Simplicity",B:"More staff",C:"Improves traffic safety",D:"Manual control"} }
+    }
+  ];
+
+  let lang = "kk";
+  let index = 0;
+  let userAnswers = new Array(data.length).fill(null);
+
+  const ui = {
+    kk: { title: "Теміржол Тесті", next: "Келесі →", prev: "← Артқа", finish: "Аяқтау", result: "Нәтиже", restart: "Қайта бастау", hint: "Қайта тапсыру үшін батырманы бас." },
+    ru: { title: "Железнодорожный Тест", next: "Далее →", prev: "← Назад", finish: "Завершить", result: "Результат", restart: "Начать заново", hint: "Нажмите кнопку, чтобы пройти заново." },
+    en: { title: "Railway Quiz", next: "Next →", prev: "← Back", finish: "Finish", result: "Result", restart: "Restart", hint: "Press the button to try again." }
+  };
+
+  function render(){
+    const q = data[index][lang];
+    const currentUI = ui[lang];
+
+    document.getElementById("title").textContent = currentUI.title;
+    document.getElementById("questionText").textContent = q.q;
+    
+    const answersDiv = document.getElementById("answers");
+    answersDiv.innerHTML = "";
+
+    ["A","B","C","D"].forEach(k => {
+      const btn = document.createElement("button");
+      btn.className = "answer" + (userAnswers[index] === k ? " selected" : "");
+      btn.textContent = `${k}) ${q.a[k]}`;
+      btn.onclick = () => {
+        userAnswers[index] = k;
+        render(); 
+      };
+      answersDiv.appendChild(btn);
+    });
+
+    document.getElementById("progressText").textContent = `${index + 1} / ${data.length}`;
+    document.getElementById("barFill").style.width = `${((index + 1) / data.length) * 100}%`;
+
+    const nextBtn = document.getElementById("nextBtn");
+    const prevBtn = document.getElementById("prevBtn");
+
+    prevBtn.disabled = index === 0;
+    prevBtn.textContent = currentUI.prev;
+
+    nextBtn.disabled = userAnswers[index] === null;
+    nextBtn.textContent = (index === data.length - 1) ? currentUI.finish : currentUI.next;
+  }
+
+  document.getElementById("nextBtn").onclick = () => {
+    if(index < data.length - 1) {
+      index++;
+      render();
+    } else {
+      showResult();
+    }
+  };
+
+  document.getElementById("prevBtn").onclick = () => {
+    if(index > 0) {
+      index--;
+      render();
+    }
+  };
+
+  function showResult(){
+    let score = 0;
+    data.forEach((q, i) => { if(userAnswers[i] === q.correct) score++; });
+
+    document.getElementById("quizCard").classList.add("hidden");
+    document.getElementById("resultCard").classList.remove("hidden");
+
+    const currentUI = ui[lang];
+    document.getElementById("resultTitle").textContent = currentUI.result;
+    document.getElementById("resultText").textContent = `${score} / ${data.length}`;
+    document.getElementById("resultHint").textContent = currentUI.hint;
+    document.getElementById("restartBtn").textContent = currentUI.restart;
+  }
+
+  document.getElementById("restartBtn").onclick = () => {
+    index = 0;
+    userAnswers.fill(null);
+    document.getElementById("resultCard").classList.add("hidden");
+    document.getElementById("quizCard").classList.remove("hidden");
+    render();
+  };
+
+  document.getElementById("langSelect").onchange = (e) => {
+    lang = e.target.value;
+    render();
+  };
+
+  document.getElementById("themeBtn").onclick = () => {
+    document.body.classList.toggle("dark");
+    document.getElementById("themeBtn").textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+  };
+
+  render();
+</script>
+</body>
+</html>
